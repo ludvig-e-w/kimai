@@ -66,3 +66,7 @@ yarn-error.log
 /nbproject/*
 
 .dockerhub.secrets
+
+# ew self-hosting deploy config
+.env.*
+!.env.example

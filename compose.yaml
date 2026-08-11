@@ -1,0 +1,48 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: kimai-db
+    restart: unless-stopped
+    command: --default-storage-engine=InnoDB
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  kimai:
+    image: kimai/kimai2:${KIMAI_VERSION}
+    container_name: kimai
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${KIMAI_PORT}:8001"
+    environment:
+      # first-boot admin user (ignored once the user exists)
+      ADMINMAIL: ${ADMIN_MAIL}
+      ADMINPASS: ${ADMIN_PASSWORD}
+      DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@db/${DB_NAME}?charset=utf8mb4&serverVersion=8.4.0
+      APP_SECRET: ${APP_SECRET}
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES}
+      # container listens on 8001 in the apache image
+      MAILER_URL: ${MAILER_URL}
+      MAILER_FROM: ${MAILER_FROM}
+    volumes:
+      - kimai_var:/opt/kimai/var
+      - kimai_plugins:/opt/kimai/var/plugins
+
+volumes:
+  db_data:
+  kimai_var:
+  kimai_plugins:
